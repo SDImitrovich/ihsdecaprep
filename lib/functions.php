@@ -27,6 +27,11 @@ function getPostVarTrimmedOrEmpty($var)
 	return (isset($_POST[$var])) ? trim($_POST[$var]) : '';
 }
 
+function getGetVarTrimmedOrEmpty($var)
+{
+	return (isset($_GET[$var])) ? trim($_GET[$var]) : '';
+}
+
 function send_mixed_mime_email($emailAddr, $subject, $plainText, $html)
 {
 	// mixed-format email requires some boundary that could be any text that 

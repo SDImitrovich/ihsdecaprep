@@ -21,17 +21,23 @@ if (~$user->permission & User::CREATE_FORUM)
 
 header('Cache-control: private');
 
+// start with defaults
 $cluster = new Cluster();
-// if id is specified in URL - this takes precedence over everything else
+$inCluster = 60; // by default, get 60% of questions from the selected cluster
+
+// parameters passed via URL take precedence over everything else
+// we expect at least one parameter: cluster ID
+// additionally, there can be one optional parameter: 
+// incluster (0-100), identifying the ratio of questions 
+// in the generated practice test that are from selected cluster
 if (isset($_GET['id']) )
 {
 	// if the ID is real, we'll get a Cluster instance,
 	// otherwise we'll get an empty new instance
 	$cluster = Cluster::getById($_GET['id']);
 }
-
-// if this is after the POST call, we have some input data - let's process it!
-if (isset($_POST['submitted']))
+// if this is after the POST call, we have cluster selected from the dropdown
+else if (isset($_POST['submitted']))
 {
 	// if a cluster hasn't bee set yet (i.e. no valid cluster ID was passed in URL),
 	// get its id from the dropdown
@@ -46,7 +52,7 @@ if (isset($_POST['submitted']))
 ob_start();
 ?>
 <form method="post" id="questionForm" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
- <h1>OK, let's edit some questions!</h1>
+ <h1>OK, let's take that test!</h1>
  <table>
   <tr>
     <td><label for="clustername">Select Cluster</label></td>

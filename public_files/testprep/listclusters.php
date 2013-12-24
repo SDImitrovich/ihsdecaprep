@@ -1,7 +1,6 @@
 <?php
 // include shared code
 include '../../lib/common.php';
-include '../../lib/db.php';
 include '../../lib/functions.php';
 include '../../lib/Cluster.php';
 
@@ -27,9 +26,11 @@ ob_start();
 
 echo '<h1>Here are the clusters we have in our system:</h1>';
 echo '<table>';
+echo '<tr><td colspan="2"> </td></tr>';
+echo sprintf('<tr><td><a href="editcluster.php?url=%s">Add New Cluster</a></td></tr>', $_SERVER['PHP_SELF']);
 foreach ($clusters as $c)
 {
-	echo '<tr><td colspan="2"></td></tr>';
+	echo '<tr><td colspan="2"> </td></tr>';
 	echo sprintf('<tr><td><strong>Name:</strong></td><td>%s</td></tr>', $c->name);
 	echo sprintf('<tr><td><strong>Description:</strong></td><td><em>%s</em></td></tr>', $c->description);
 	echo sprintf('<tr><td><a href="editcluster.php?id=%d&url=%s">Edit Cluster</a></td></tr>', $c->id, $_SERVER['PHP_SELF']);

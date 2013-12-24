@@ -1,4 +1,7 @@
 <?php
+// include shared code
+require_once 'db.php';
+
 abstract class Entity
 {
     protected $id;    	// entity id

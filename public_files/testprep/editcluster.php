@@ -1,9 +1,8 @@
 <?php
 // include shared code
 include '../../lib/common.php';
-include '../../lib/db.php';
 include '../../lib/functions.php';
-include '../../lib/Cluster.php';
+require_once '../../lib/Cluster.php';
 
 // 401 file included because user should be logged in to access this page
 include '../login/401.php';
@@ -26,11 +25,9 @@ $cluster = new Cluster();
 
 // if question id is specified - we are in Edit mode;
 // load the question and set the form values accordingly
-if (isset($_GET['id']) || isset($_POST['id']))
+if (isset($_GET['id']) )
 {
-	if (isset($_GET['id'])) { $cluster = Cluster::getById($_GET['id']); } // id in URL
-	else { $cluster = Cluster::getById($_POST['id']); } // id in the form - updated values are coming...
-	
+	$cluster = Cluster::getById($_GET['id']); // id in URL
 	// if the ID is set, we must've found the cluster, otherwise the ID was bogus, and we'll default to the Add mode
 	if ($cluster->id) {	$headline = "Edit cluster"; }
 }
@@ -38,10 +35,10 @@ if (isset($_GET['id']) || isset($_POST['id']))
 // if this page is called from some other place and the referer wants us to come back
 // after the Edit is done, the 'url' parameter will be passed on query string
 // we'll save it into a hidden form field so that it is available to us after POST
-$refererUrl = '';
+$refererUrl = htmlspecialchars($_SERVER['PHP_SELF']);
 if (isset($_GET['url']) )
 {
-	$refererUrl = $_GET['url'];
+	$refererUrl = getGetVarTrimmedOrEmpty('url');
 }
 
 // init the form
@@ -51,7 +48,11 @@ $GLOBALS['TEMPLATE']['content'] = '';
 // let's process it before filling out the form
 if (isset($_POST['submitted']))
 {
-
+	if (isset($_POST['id']))
+	{
+		$cluster = Cluster::getById($_POST['id']); // id in the form - updated values are coming...
+	}
+	
 	$errMsg = '';
 
     // validate CAPTCHA

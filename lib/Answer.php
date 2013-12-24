@@ -86,7 +86,7 @@ class Answer extends Entity
                 mysql_real_escape_string($this->content, $GLOBALS['DB']),
                 $this->isCorrect,
                 $this->id);
-//			echo sprintf("Answer.save(): query='%s'", $query);
+//			echo sprintf("<p>Answer.save(): query='%s'</p>", $query);
             mysql_query($query, $GLOBALS['DB']);
         }
         else
@@ -95,7 +95,7 @@ class Answer extends Entity
                 $this->questionId,
                 mysql_real_escape_string($this->content, $GLOBALS['DB']),
                 $this->isCorrect);
-//			echo sprintf("Answer.save(): query='%s'", $query);
+//			echo sprintf("<p>Answer.save(): query='%s'</p>", $query);
             mysql_query($query, $GLOBALS['DB']);
 
             $this->id = mysql_insert_id($GLOBALS['DB']);
