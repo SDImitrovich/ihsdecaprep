@@ -37,12 +37,24 @@ class Question extends Entity
         return $question;
     }
 
-    // return an array of Question objects populated based on the cluster id
+    // return an array of Question objects associated with the specified Cluster ID
     public static function getByClusterId($clusterId)
     {
-        $questions = array();
-
         $query = sprintf('SELECT * FROM QUESTIONS WHERE CLUSTER_ID = %d', $clusterId);           
+		return Question::getListBasedOnQuery($query);
+    }
+	
+
+    // return an array of Question objects that are NOT associated with the specified Cluster ID
+    public static function getNotClusterId($clusterId)
+    {
+        $query = sprintf('SELECT * FROM QUESTIONS WHERE CLUSTER_ID != %d', $clusterId);           
+		return Question::getListBasedOnQuery($query);
+    }
+	
+	private static function getListBasedOnQuery($query)
+	{
+        $questions = array();
         $result = mysql_query($query, $GLOBALS['DB']);
 		
         if (mysql_num_rows($result))
@@ -51,13 +63,12 @@ class Question extends Entity
 			{	
 				$q = new Question();
 				Question::setValuesFromDB($q, $row);
-				// add the question to the list, using its id as a key
-				$questions[$q->id] = $q;
+				array_push($questions, $q);				
 			}
 		}
 		mysql_free_result($result);
         return $questions;
-    }
+	}
 	
 	private static function setValuesFromDB($question, $row)
 	{

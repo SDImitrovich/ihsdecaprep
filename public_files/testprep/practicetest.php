@@ -23,35 +23,39 @@ header('Cache-control: private');
 
 // start with defaults
 $cluster = new Cluster();
-$inCluster = 60; // by default, get 60% of questions from the selected cluster
+$inClusterQsPercentage = 60; // by default, get 60% of questions from the selected cluster
+$totalQsCount = 100; // each practice test will be made of 100 questions
 
 // parameters passed via URL take precedence over everything else
 // we expect at least one parameter: cluster ID
-// additionally, there can be one optional parameter: 
-// incluster (0-100), identifying the ratio of questions 
-// in the generated practice test that are from selected cluster
 if (isset($_GET['id']) )
 {
 	// if the ID is real, we'll get a Cluster instance,
 	// otherwise we'll get an empty new instance
-	$cluster = Cluster::getById($_GET['id']);
+	$cluster = Cluster::getById(getGetVarTrimmedOrEmpty('id'));
 }
 // if this is after the POST call, we have cluster selected from the dropdown
 else if (isset($_POST['submitted']))
 {
-	// if a cluster hasn't bee set yet (i.e. no valid cluster ID was passed in URL),
-	// get its id from the dropdown
-	if (! $cluster->id)
-	{
-		$clusterId = (isset($_POST['cluster'])) ? trim($_POST['cluster']) : 0;
-		$cluster = Cluster::getById($clusterId);
-	}
+	$clusterId = (isset($_POST['cluster'])) ? getPostVarTrimmedOrEmpty('cluster') : 0;
+	$cluster = Cluster::getById($clusterId);
 }
+
+// additionally, there can be one optional parameter: 
+// incluster (0-100), identifying the ratio of questions 
+// in the generated practice test that are from selected cluster
+if (isset($_GET['incluster']) )
+{
+	// if count is passed = get its value
+	$inClusterQsPercentage = intval(getGetVarTrimmedOrEmpty('incluster') );	
+}
+// the percentage of in-cluster questions cannot exceed 100%
+if ($inClusterQsPercentage > 100) { $inClusterQsPercentage = 100; }
 
 // buffer the output and prepare the HTML
 ob_start();
 ?>
-<form method="post" id="questionForm" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
+<form method="post" id="selectClusterForm" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
  <h1>OK, let's take that test!</h1>
  <table>
   <tr>
@@ -74,7 +78,7 @@ ob_start();
   </tr>
   <tr>
    <td> </td>
-   <td><input type="submit" value="List Questions"/></td>
+   <td><input type="submit" value="List Practice Questions"/></td>
    <td><input type="hidden" name="submitted" value="1"/></td>
   </tr>
  </table>
@@ -82,29 +86,68 @@ ob_start();
 
 <?php
 
-// now, list all the questions for this cluster, if any is selected
-echo '<table>';
-$questions = Question::getByClusterId($cluster->id);
-foreach ($questions as $q)
+// now, list the questions for this cluster, if any is selected
+$questions = array();
+if ($cluster->id)
 {
-	$q->loadAnswers();
-	echo '<tr><td colspan="3"> </td></tr>';
-	echo sprintf('<tr><td colspan="2"><strong>Content:</strong></td><td>%s</td></tr>', $q->content);
-	// list all answers 
-	$i = 1;
-	foreach ($q->answers as $a)
+	// first, get all questions for the specific cluster and select a subset of them
+	// according to the specified percentage
+	$inClusterQs = Question::getByClusterId($cluster->id);
+	$qCount = round(count($inClusterQs) * $inClusterQsPercentage/$totalQsCount);
+	$inClusterQsSelected = random_range($inClusterQs, $qCount);
+	$questions = $inClusterQsSelected;
+//echo sprintf('<p>Total questions for this cluster: %d</p>', count($inClusterQs) );
+//echo sprintf('<p>Selected questions for this cluster: %d</p>', count($inClusterQsSelected) );
+	// if some non-cluster questions are required - get them
+	if ($inClusterQsPercentage < 100)
 	{
-		echo sprintf('<tr><td width="20"></td><td><strong>Answer #%d%s:</strong></td><td>%s</td>', $i, ($a->isCorrect) ? ' (correct)' : '', $a->content);
-		$i++;
+		$outClusterQs = Question::getNotClusterId($cluster->id);
+		$qCount = 100 - $qCount;
+		$outClusterQsSelected = random_range($outClusterQs, $qCount);
+//echo sprintf('<p>Total questions outside of this cluster: %d</p>', count($outClusterQs) );
+//echo sprintf('<p>Selected questions outside of this cluster: %d</p>', count($outClusterQsSelected) );
+		$questions = array_merge($inClusterQsSelected, $outClusterQsSelected);
+		shuffle($questions);
 	}
-	echo '<tr><td colspan="3"><strong>Additional Information:</strong></td></tr>';
-	echo sprintf('<tr><td colspan="3">%s</td></tr>', $q->additionalInfo);
-	// refer back to this page, saving cluster ID in the URL as well
-	$refererUrl = htmlspecialchars(sprintf('%s?id=%d', $_SERVER['PHP_SELF'], $cluster->id) );
-	echo sprintf('<tr><td colspan="2"><a href="editquestion.php?id=%d&url=%s">Edit Question</a></td></tr>', $q->id, $refererUrl);
-	echo '<tr><td colspan="3"><hr/></td></tr>';
+
+//echo sprintf('<p>Total questions for this test: %d</p>', count($questions) );
 }
-echo '</table>';
+?>
+
+<form method="post" id="questionsForm" action="validatetest.php">
+ <h2>Here are your questions:</h2>
+ <table>
+<?php
+	// list questions
+	$answerLetters = ['A', 'B', 'C', 'D'];
+	foreach ($questions as $q)
+	{
+		// record the question id, so that it is passed to the validation page
+		echo sprintf('<tr><td colspan="3"><input type="hidden" name="question%d" value="%d"/></td></tr>', $q->id, $q->id);
+		echo sprintf('<tr><td colspan="2"><strong>Content:</strong></td><td>%s</td></tr>', $q->content);
+		// list all answers 
+		$q->loadAnswers();
+		$i = 0;
+		foreach ($q->answers as $a)
+		{
+			echo '<tr>';
+			echo sprintf('<td><label>%s:</label></td>', $answerLetters[$i]);
+			echo sprintf('<td><label>%s</label></td>', $a->content);
+			echo sprintf('<td><input type="checkbox" name="answer%d" id="answer%d" value="%d"/></td>', $a->id, $a->id, $a->id ); 
+			echo '</tr>';
+			$i++;
+		}
+		echo '<tr><td colspan="3"><hr/></td></tr>';
+	}
+?>
+  <tr>
+   <td> </td>
+   <td><input type="submit" value="Evaluate"/></td>
+   <td><input type="hidden" name="submitted" value="1"/></td>
+  </tr>
+ </table>
+</form>
+<?php
 
 $GLOBALS['TEMPLATE']['content'] = ob_get_clean();
 

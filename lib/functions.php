@@ -32,6 +32,38 @@ function getGetVarTrimmedOrEmpty($var)
 	return (isset($_GET[$var])) ? trim($_GET[$var]) : '';
 }
 
+// generates a set of random numbers within specified array,
+// without duplication
+// they keys will not be preserved
+function random_range($list, $count)
+{
+/*
+echo '<h3>In random_range()</h3>';
+echo '<p>Original array:</p>';
+var_dump($list);
+echo sprintf('<p>Count: %d</p>', $count);
+*/
+	// if count > to range, we can't generate $count of unique values
+	if ($count > count($list) ) { return $list; }
+	
+	$retval = array();
+	if (shuffle($list) )
+	{
+		// these are keys into the $keys array, so we'll need to do
+		// double-dereferencing to get to actual values
+		$randKeys = array_rand($list, $count);
+		foreach ($randKeys as $key)
+		{
+			array_push($retval, $list[$key]);
+		}
+	}
+/*
+echo "<p>Subset array:</p>";
+var_dump($retval);
+*/
+	return $retval;
+}
+
 function send_mixed_mime_email($emailAddr, $subject, $plainText, $html)
 {
 	// mixed-format email requires some boundary that could be any text that 

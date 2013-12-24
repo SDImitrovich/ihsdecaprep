@@ -24,6 +24,7 @@ class Answer extends Entity
         $answer = new Answer();
 
         $query = sprintf('SELECT * FROM ANSWERS WHERE ID = %d', $id);
+		//echo sprintf('Answers::getById(); query="%s"', $query);
         $result = mysql_query($query, $GLOBALS['DB']);
 
         if (mysql_num_rows($result))
